@@ -74,12 +74,13 @@ class Train(Trainer):
                 real_scores.append(real_out.data)
                 fake_scores.append(fake_out.data)
 
-                real_img = real_img.cpu().data
-                fake_img = fake_img.cpu().data
-                torchvision.utils.save_image(real_img, os.path.join(self.args.img_dir, f"real_{self.epoch}_{i}.png"),
-                                             nrow=round(pow(self.args.batch_size, 0.5)), normalize=True, scale_each=True)
-                torchvision.utils.save_image(fake_img, os.path.join(self.args.img_dir, f"real_{self.epoch}_{i}.png"),
-                                             nrow=round(pow(self.args.batch_size, 0.5)), normalize=True, scale_each=True)
+                if i % self.args.print_freq == 0:
+                    real_img = real_img.cpu().data
+                    fake_img = fake_img.cpu().data
+                    torchvision.utils.save_image(real_img, os.path.join(self.args.img_dir, f"real_{self.epoch}_{i}.png"),
+                                                 nrow=round(pow(self.args.batch_size, 0.5)), normalize=True, scale_each=True)
+                    torchvision.utils.save_image(fake_img, os.path.join(self.args.img_dir, f"fake_{self.epoch}_{i}.png"),
+                                                 nrow=round(pow(self.args.batch_size, 0.5)), normalize=True, scale_each=True)
 
             real_score = torch.cat(real_scores).mean()
             fake_score = torch.cat(fake_scores).mean()

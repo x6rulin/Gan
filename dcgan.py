@@ -12,7 +12,6 @@ if __name__ == "__main__":
     from core.train import Train
 
     img_dir = r"/home/data/Cartoon_faces/faces"
-    save_dir = r"/home/data/Cartoon_faces/dcgan"
 
     transform = transform=torchvision.transforms.Compose([
         torchvision.transforms.ToTensor(),
