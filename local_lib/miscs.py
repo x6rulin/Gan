@@ -17,7 +17,7 @@ class ArgParse:
         self.parser.add_argument("-n", "--ncpu", type=int, default=8, help="number of cpu threads used during batch generation")
         self.parser.add_argument("-l", "--lr", type=float, default=1e-3, help="learning rate for gradient descent")
         self.parser.add_argument("-p", "--print-freq", type=int, default=10, help="print frequency")
-        self.parser.add_argument("-c", "--chkpt-dir", type=str, default="checkpoints/", help="directory saved checkpoints")
+        self.parser.add_argument("-c", "--chkpt-dir", type=str, default="checkpoints/", help="directory saving checkpoints")
         self.parser.add_argument("-i", "--evaluation-interval", type=int, default=1, help="interval between evaluations on validation set")
 
     def __call__(self):

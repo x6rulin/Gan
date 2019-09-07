@@ -3,11 +3,10 @@ import torch
 
 class LogDloss(torch.nn.Module):
 
-    def __init__(self, device):
+    def __init__(self):
         super(LogDloss, self).__init__()
 
-        self.device = device
-        self.criterion = torch.nn.BCEWithLogitsLoss()
+        self.criterion = torch.nn.BCELoss()
 
     def forward(self, **kwargs):
         if 'fake_scores' in kwargs:
@@ -18,8 +17,8 @@ class LogDloss(torch.nn.Module):
         raise RuntimeError("invalid arguments: expected [real_scores, fake_scores] or [fake_scores]")
 
     def critic_loss(self, real_scores, fake_scores):
-        real_labels = torch.ones_like(real_scores, device=self.device)
-        fake_labels = torch.ones_like(fake_scores, device=self.device)
+        real_labels = torch.ones_like(real_scores, device=fake_scores.device)
+        fake_labels = torch.zeros_like(fake_scores, device=fake_scores.device)
 
         real_loss = self.criterion(real_scores, real_labels)
         fake_loss = self.criterion(fake_scores, fake_labels)
@@ -28,7 +27,7 @@ class LogDloss(torch.nn.Module):
         return loss
 
     def generator_loss(self, fake_scores):
-        real_labels = torch.ones_like(fake_scores, device=self.device)
+        real_labels = torch.ones_like(fake_scores, device=fake_scores.device)
 
         loss = self.criterion(fake_scores, real_labels)
         return loss
