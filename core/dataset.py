@@ -5,14 +5,10 @@ from PIL import Image
 
 class GanData(Dataset):
 
-    def __init__(self, img_dir, train=True, transform=None):
+    def __init__(self, img_dir, transform=None):
         super(GanData, self).__init__()
 
-        _pths = os.listdir(img_dir)
-        if train:
-            self.__data = [os.path.join(img_dir, pth) for pth in _pths[:int(0.9 * len(_pths))]]
-        else:
-            self.__data = [os.path.join(img_dir, pth) for pth in _pths[int(0.9 * len(_pths)):]]
+        self.__data = [os.path.join(img_dir, pth) for pth in os.listdir(img_dir)]
         self.__transform = transform
 
     def __len__(self):
