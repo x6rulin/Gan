@@ -86,7 +86,7 @@ class Train(Trainer):
             fake_score = torch.cat(fake_scores).mean()
             print(f"[epochs: {self.epoch}]Score_real: {real_score:.4f} - Score_fake: {fake_score:.4f}")
 
-        return torch.reciprocal(critic_loss.clamp_min(1e-2)) + 2 * real_score + 8 * fake_score
+        return 0.75 * torch.reciprocal(critic_loss.clamp_min(1e-2)) + 0.25 * torch.reciprocal(real_score - fake_score).clamp(2, 64)
 
     def _dcgan_critic(self, real_img):
         real_img = real_img.to(self.device)
