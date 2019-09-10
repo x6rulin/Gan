@@ -6,7 +6,7 @@ class LogDloss(torch.nn.Module):
     def __init__(self):
         super(LogDloss, self).__init__()
 
-        self.criterion = torch.nn.BCELoss()
+        self.criterion = torch.nn.BCEWithLogitsLoss()
 
     def forward(self, **kwargs):
         if 'fake_scores' in kwargs:
@@ -14,9 +14,9 @@ class LogDloss(torch.nn.Module):
                 return self.critic_loss(**kwargs)
             return self.generator_loss(**kwargs)
 
-        raise RuntimeError("invalid arguments: expected [real_scores, fake_scores] or [fake_scores]")
+        raise RuntimeError("invalid arguments: expected {real_scores, fake_scores} or {fake_scores}"
 
-    def critic_loss(self, real_scores, fake_scores):
+    def) critic_loss(self, real_scores, fake_scores):
         real_labels = torch.ones_like(real_scores, device=fake_scores.device)
         fake_labels = torch.zeros_like(fake_scores, device=fake_scores.device)
 
@@ -31,3 +31,22 @@ class LogDloss(torch.nn.Module):
 
         loss = self.criterion(fake_scores, real_labels)
         return loss
+
+
+class WSLoss(torch.nn.Module):
+
+    def forward(self, **kwargs):
+        if 'fake_scores' in kwargs:
+            if 'real_scores' in kwargs:
+                return self.critic_loss(**kwargs)
+            return self.generator_loss(**kwargs)
+
+        raise RuntimeError("invalid arguments: expected {real_scores, fake_scores} or {fake_scores}")
+
+    @staticmethod
+    def critic_loss(real_scores, fake_scores):
+        return real_scores.mean() - fake_scores.mean()
+
+    @staticmethod
+    def generator_loss(fake_scores):
+        return fake_scores.mean()

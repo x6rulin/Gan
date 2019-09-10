@@ -22,7 +22,7 @@ class GanTrain(Trainer):
         super(GanTrain, self).__init__(train_dataset, args=Args())
         self.net = {}
         self.optimizer = {}
-        self.criterion = NotImplemented
+        self.criterion = None
 
         self.epoch = 0
         self.value = 0.

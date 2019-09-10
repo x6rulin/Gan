@@ -35,7 +35,7 @@ class DcGanTrain(GanTrain):
         critic_loss.backward()
         self.optimizer['dnet'].step()
 
-        return critic_loss, real_out.data.mean()
+        return critic_loss, torch.sigmoid(real_out.data).mean()
 
     def _generator(self):
         self._grad_enable(self.net['gnet'])
@@ -50,7 +50,7 @@ class DcGanTrain(GanTrain):
         generator_loss.backward()
         self.optimizer['gnet'].step()
 
-        return generator_loss, fake_out.data.mean(), fake_img
+        return generator_loss, torch.sigmoid(fake_out.data).mean(), fake_img
 
 
 if __name__ == "__main__":
@@ -68,6 +68,6 @@ if __name__ == "__main__":
 
     _n = 128
     _gnet = Generator(_n)
-    _dnet = Discriminator(out_activate='sigmoid')
+    _dnet = Discriminator()
     trainer = DcGanTrain(_gnet, _dnet, _n, dataset)
     trainer()
