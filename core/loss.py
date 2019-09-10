@@ -14,9 +14,9 @@ class LogDloss(torch.nn.Module):
                 return self.critic_loss(**kwargs)
             return self.generator_loss(**kwargs)
 
-        raise RuntimeError("invalid arguments: expected {real_scores, fake_scores} or {fake_scores}"
+        raise RuntimeError("invalid arguments: expected {real_scores, fake_scores} or {fake_scores}")
 
-    def) critic_loss(self, real_scores, fake_scores):
+    def critic_loss(self, real_scores, fake_scores):
         real_labels = torch.ones_like(real_scores, device=fake_scores.device)
         fake_labels = torch.zeros_like(fake_scores, device=fake_scores.device)
 
