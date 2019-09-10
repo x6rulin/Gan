@@ -1,14 +1,11 @@
 import sys
 import os
 import torch
-import torchvision
 
 rootPath = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(rootPath)
 
-from local_lib.dcgan import Discriminator, Generator
 from core.loss import LogDloss
-from core.dataset import GanData
 from core.train import GanTrain
 
 
@@ -23,13 +20,13 @@ class DcGanTrain(GanTrain):
         self.criterion = LogDloss()
 
     def _critic(self, real_img):
-        self.net['gnet'].train()
-        self.net['dnet'].train()
+        self._no_grad(self.net['gnet'])
+        self._grad_enable(self.net['dnet'])
+
         real_img = real_img.to(self.device)
         real_out = self.net['dnet'](real_img)
 
         sample = torch.randn(real_img.size(0), self.sample_num, 1, 1, device=self.device)
-        sample.clamp_(-3., 3.)
         fake_img = self.net['gnet'](sample)
         fake_out = self.net['dnet'](fake_img)
 
@@ -41,10 +38,10 @@ class DcGanTrain(GanTrain):
         return critic_loss, real_out.data.mean()
 
     def _generator(self):
-        self.net['gnet'].train()
-        self.net['dnet'].train()
+        self._grad_enable(self.net['gnet'])
+        self._no_grad(self.net['dnet'])
+
         sample = torch.randn(self.args.batch_size, self.sample_num, 1, 1, device=self.device)
-        sample.clamp_(-3., 3.)
         fake_img = self.net['gnet'](sample)
         fake_out = self.net['dnet'](fake_img)
 
@@ -57,6 +54,9 @@ class DcGanTrain(GanTrain):
 
 
 if __name__ == "__main__":
+    import torchvision
+    from core.dataset import GanData
+    from local_lib.dcgan import Discriminator, Generator
 
     img_dir = r"/home/data/Cartoon_faces/faces"
 

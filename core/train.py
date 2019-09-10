@@ -27,26 +27,26 @@ class GanTrain(Trainer):
         self.epoch = 0
         self.value = 0.
 
-        self.__nc = self.args.nc
-        self.__pf = self.args.print_freq
         if not os.path.exists(self.args.img_dir):
             os.makedirs(self.args.img_dir, 0o775)
 
     def train(self):
         print(f"epochs: {self.epoch}")
+        _ic, _pf = 1, 1
         for i, real_img in enumerate(self.train_loader, 1):
             critic_loss, real_score = self._critic(real_img)
 
-            if self.__nc > 1:
-                self.__nc -= 1
+            if _ic < self.args.nc:
+                _ic += 1
             else:
+                _ic = 1
                 for _ in range(self.args.ng):
                     generator_loss, fake_score, fake_img = self._generator()
-                self.__nc = self.args.nc
 
-                if self.__pf > 1:
-                    self.__pf -= 1
+                if _pf < self.args.print_freq:
+                    _pf += 1
                 else:
+                    _pf = 1
                     print(f"[epoch: {self.epoch} - {i}/{len(self.train_loader)}]Loss_dnet: {critic_loss:.6f} - "
                           f"Loss_gnet: {generator_loss:.6f} | Score_real: {real_score:.4f} - Score_fake: {fake_score:.4f}")
 
@@ -55,7 +55,6 @@ class GanTrain(Trainer):
                                                  nrow=round(pow(self.args.batch_size, 0.5)), normalize=True, scale_each=True)
                     torchvision.utils.save_image(fake_img, os.path.join(self.args.img_dir, f"fake_{i}.png"),
                                                  nrow=round(pow(self.args.batch_size, 0.5)), normalize=True, scale_each=True)
-                    self.__pf = self.args.print_freq
 
     def validate(self):
         return self.value
@@ -65,3 +64,19 @@ class GanTrain(Trainer):
 
     def _generator(self):
         raise NotImplementedError
+
+    @staticmethod
+    def _no_grad(net):
+        for param in net.parameters():
+            if not param.requires_grad:
+                param.requires_grad = False
+            else:
+                break
+
+    @staticmethod
+    def _grad_enable(net):
+        for param in net.parameters():
+            if param.requires_grad:
+                break
+            else:
+                param.requires_grad = True
