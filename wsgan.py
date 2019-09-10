@@ -23,9 +23,6 @@ class WSGanTrain(GanTrain):
         self._no_grad(self.net['gnet'])
         self._grad_enable(self.net['dnet'])
 
-        for param in self.net['dnet'].parameters():
-            param.data.clamp_(-0.01, 0.01)
-
         real_img = real_img.to(self.device)
         real_out = self.net['dnet'](real_img)
 
@@ -37,6 +34,9 @@ class WSGanTrain(GanTrain):
         self.optimizer['dnet'].zero_grad()
         critic_loss.backward()
         self.optimizer['dnet'].step()
+
+        for param in self.net['dnet'].parameters():
+            param.data.clamp_(-0.01, 0.01)
 
         return critic_loss, real_out.data.mean()
 

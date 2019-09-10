@@ -15,8 +15,8 @@ class DcGanTrain(GanTrain):
         super(DcGanTrain, self).__init__(sample_num, train_dataset)
 
         self.net = {'gnet': gnet.to(self.device), 'dnet': dnet.to(self.device)}
-        self.optimizer = {'gnet': torch.optim.Adam(self.net['gnet'].parameters(), lr=2e-4, betas=(0.5, 0.999)),
-                          'dnet': torch.optim.Adam(self.net['dnet'].parameters(), lr=2e-4, betas=(0.5, 0.999), weight_decay=1e-3)}
+        self.optimizer = {'gnet': torch.optim.Adam(self.net['gnet'].parameters(), lr=2e-4, betas=(0.5, 0.99)),
+                          'dnet': torch.optim.Adam(self.net['dnet'].parameters(), lr=2e-4, betas=(0.5, 0.99), weight_decay=1e-3)}
         self.criterion = LogDloss()
 
     def _critic(self, real_img):
