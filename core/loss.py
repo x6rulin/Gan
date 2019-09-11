@@ -33,7 +33,7 @@ class LogDloss(torch.nn.Module):
         return loss
 
 
-class WSLoss(torch.nn.Module):
+class EMLoss(torch.nn.Module):
 
     def forward(self, **kwargs):
         if 'fake_scores' in kwargs:
@@ -45,8 +45,8 @@ class WSLoss(torch.nn.Module):
 
     @staticmethod
     def critic_loss(real_scores, fake_scores):
-        return fake_scores.mean() - real_scores.mean()
+        return real_scores.mean() - fake_scores.mean()
 
     @staticmethod
     def generator_loss(fake_scores):
-        return -fake_scores.mean()
+        return fake_scores.mean()

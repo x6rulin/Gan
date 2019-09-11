@@ -5,7 +5,7 @@ import torch
 rootPath = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(rootPath)
 
-from core.loss import WSLoss
+from core.loss import EMLoss
 from core.train import GanTrain
 
 
@@ -17,7 +17,7 @@ class WSGanTrain(GanTrain):
         self.net = {'gnet': gnet.to(self.device), 'dnet': dnet.to(self.device)}
         self.optimizer = {'gnet': torch.optim.RMSprop(self.net['gnet'].parameters(), lr=5e-5),
                           'dnet': torch.optim.RMSprop(self.net['dnet'].parameters(), lr=5e-5)}
-        self.criterion = WSLoss()
+        self.criterion = EMLoss()
 
     def _critic(self, real_img):
         self._no_grad(self.net['gnet'])
