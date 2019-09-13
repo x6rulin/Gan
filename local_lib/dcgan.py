@@ -1,103 +1,138 @@
 import torch
 
 
-def _activate(key, **kwargs):
+def _activate(key):
     if key == 'none': return []
     if key == 'relu': return [torch.nn.ReLU(inplace=True)]
-    if key == 'leakyrelu': return [torch.nn.LeakyReLU(inplace=True, **kwargs)]
-    if key == 'prelu': return [torch.nn.PReLU(**kwargs)]
+    if key == 'leakyrelu': return [torch.nn.LeakyReLU(negative_slope=0.2, inplace=True)]
+    if key == 'prelu': return [torch.nn.PReLU()]
     if key == 'sigmoid': return [torch.nn.Sigmoid()]
     if key == 'tanh': return [torch.nn.Tanh()]
 
     raise RuntimeError(f"not supported activation: '{key}'")
 
+def _normalization(key, **kwargs):
+    if key == 'none': return []
+    if key == 'BatchNorm2d': return [torch.nn.BatchNorm2d(**kwargs)]
+    if key == 'LayerNorm': return [torch.nn.LayerNorm(**kwargs)]
 
-def _init_weights(m):
+    raise RuntimeError(f"not supported normaliztion: '{key}'")
+
+
+def _weights_init(m):
     if isinstance(m, torch.nn.Conv2d):
         torch.nn.init.normal_(m.weight, 0., 0.02)
         if m.bias is not None:
             torch.nn.init.constant_(m.bias, 0)
-        elif isinstance(m, torch.nn.BatchNorm2d):
+        elif isinstance(m, (torch.nn.BatchNorm2d, torch.nn.LayerNorm)):
             torch.nn.init.normal_(m.weight, 1., 0.02)
             torch.nn.init.constant_(m.bias, 0)
 
 
 class _ConvLayer(torch.nn.Module):
 
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, bias=False, \
-                 groups=1, transposed=False, output_padding=0, bn=True, activation='prelu', **kwargs):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, bias=False, groups=1, \
+                 transposed=False, output_padding=0, activation='none', norm='none', **kwargs):
         super(_ConvLayer, self).__init__()
 
         self.sub_module = torch.nn.Sequential(
             torch.nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding, output_padding, groups, bias) \
             if transposed else torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, groups=groups, bias=bias),
-            *[torch.nn.BatchNorm2d(out_channels)][:bn],
-            *_activate(activation, **kwargs),
+            *_normalization(norm, **kwargs),
+            *_activate(activation),
         )
 
     def forward(self, x):
         return self.sub_module(x)
 
 
-class _DLayer(torch.nn.Module):
+class DCGAN_D(torch.nn.Module):
 
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, bn=True, activation='prelu', **kwargs):
-        super(_DLayer, self).__init__()
+    def __init__(self, isize, nc, ndf=64, extra_layers=0, activation='leakyrelu', norm='BatchNorm2d', init_weights=True):
+        super(DCGAN_D, self).__init__()
+        assert isize % 16 == 0, "iszie has to be a multiple of 16"
 
-        self.sub_module = _ConvLayer(in_channels, out_channels, kernel_size, stride, padding, bn=bn, activation=activation, **kwargs)
+        self.sub_module = self._make_layers(isize, nc, ndf, extra_layers, activation, norm)
 
-    def forward(self, x):
-        return self.sub_module(x)
-
-
-class _GLayer(torch.nn.Module):
-
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, output_padding=0, bn=True, activation='prelu', **kwargs):
-        super(_GLayer, self).__init__()
-
-        self.sub_module = _ConvLayer(in_channels, out_channels, kernel_size, stride, padding, \
-                                     transposed=True, output_padding=output_padding, bn=bn, activation=activation, **kwargs)
+        if init_weights:
+            self.apply(_weights_init)
 
     def forward(self, x):
         return self.sub_module(x)
 
+    @staticmethod
+    def _make_layers(isize, nc, ndf, extra_layers, activation='leakyrelu', norm='BatchNorm2d'):
+        layers = []
 
-class Discriminator(torch.nn.Module):
+        _m = [2, 3][isize % 3 == 0]
+        csize, cndf = isize // _m, ndf
+        kwargs = [dict(kernel_size=5, stride=3, padding=1, activation=activation, norm='none'),
+                  dict(kernel_size=4, stride=2, padding=1, activation=activation, norm='none')]
+        layers.append(_ConvLayer(nc, ndf, **kwargs[_m == 2]))
 
-    def __init__(self, out_activate='none'):
-        super(Discriminator, self).__init__()
+        kwargs = [dict(norm=norm, num_features=cndf),
+                  dict(norm=norm, normalized_shape=(cndf, csize, csize))]
+        layers.extend([_ConvLayer(cndf, cndf, 3, 1, 1,
+                                  activation=activation, **kwargs[norm == 'LayerNorm'])
+                       for _ in range(extra_layers)])
 
-        self.sub_module = torch.nn.Sequential(
-            _DLayer(3, 64, 5, 3, 1, bn=False),
-            _DLayer(64, 128, 4, 2, 1),
-            _DLayer(128, 256, 4, 2, 1),
-            _DLayer(256, 512, 4, 2, 1),
-            _DLayer(512, 1, 4, 1, 0, bn=False, activation=out_activate),
-        )
+        while csize > 4:
+            kwargs = [dict(norm=norm, num_features=cndf * 2),
+                      dict(norm=norm, normalized_shape=(cndf * 2, csize//2, csize//2))]
+            layers.append(_ConvLayer(cndf, cndf * 2, 4, 2, 1,
+                                     activation=activation, **kwargs[norm == 'LayerNorm']))
+            csize, cndf = csize // 2, cndf * 2
 
-        for _m in self.modules():
-            _init_weights(_m)
+        layers.append(_ConvLayer(cndf, 1, 4, 1, 0, activation='none', norm='none'))
+
+        return torch.nn.Sequential(*layers)
+
+
+class DCGAN_G(torch.nn.Module):
+
+    def __init__(self, isize, nz, nc, ngf=64, extra_layers=0, activation='relu', norm='BatchNorm2d', init_weights=True):
+        super(DCGAN_G, self).__init__()
+        assert isize % 16 == 0, "isize has to be a multiple of 16"
+
+        self.sub_module = self._make_layers(isize, nz, nc, ngf, extra_layers, activation, norm)
+
+        if init_weights:
+            self.apply(_weights_init)
 
     def forward(self, x):
         return self.sub_module(x)
 
+    @staticmethod
+    def _make_layers(isize, nz, nc, ngf, extra_layers=0, activation='relu', norm='BatchNorm2d'):
+        layers = []
 
-class Generator(torch.nn.Module):
+        cngf, tisize = ngf, 4
+        _m = [2, 3][isize % 3 == 0]
+        while tisize != isize // _m:
+            cngf, tisize = cngf * 2, tisize * 2
 
-    def __init__(self, sample_num):
-        super(Generator, self).__init__()
+        csize = 4
 
-        self.sub_module = torch.nn.Sequential(
-            _GLayer(sample_num, 512, 4, 1, 0),
-            _GLayer(512, 256, 4, 2, 1),
-            _GLayer(256, 128, 4, 2, 1),
-            _GLayer(128, 64, 4, 2, 1),
-            _GLayer(64, 32, 5, 3, 1),
-            _DLayer(32, 3, 3, 1, 1, bn=False, activation='tanh'),
-        )
+        kwargs = [dict(norm=norm, num_features=cngf),
+                  dict(norm=norm, normalized_shape=(cngf, csize, csize))]
+        layers.append(_ConvLayer(nz, cngf, 4, 1, 0, transposed=True,
+                                 activation=activation, **kwargs[norm == 'LayerNorm']))
 
-        for _m in self.modules():
-            _init_weights(_m)
+        while csize < isize / _m:
+            kwargs = [dict(norm=norm, num_features=cngf//2),
+                      dict(norm=norm, normalized_shape=(cngf//2, csize * 2, csize * 2))]
+            layers.append(_ConvLayer(cngf, cngf//2, 4, 2, 1, transposed=True,
+                                     activation=activation, **kwargs[norm == 'LayerNorm']))
+            cngf, csize = cngf // 2, csize * 2
 
-    def forward(self, x):
-        return self.sub_module(x)
+        kwargs = [dict(norm=norm, num_features=cngf),
+                  dict(norm=norm, normalized_shape=(cngf, csize, csize))]
+        layers.extend([_ConvLayer(cngf, cngf, 3, 1, 1,
+                                  activation=activation, **kwargs[norm == 'LayerNorm'])
+                       for _ in range(extra_layers)])
+
+        kwargs = [dict(kernel_size=5, stride=3, padding=1, activation='tanh', norm='none'),
+                  dict(kernel_size=4, stride=2, padding=1, activation='tanh', norm='none')]
+        layers.append(_ConvLayer(cngf, nc, transposed=True, **kwargs[_m == 2]))
+
+        return torch.nn.Sequential(*layers)

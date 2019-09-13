@@ -32,7 +32,7 @@ class GanTrain(Trainer):
 
     def train(self):
         print(f"epochs: {self.epoch}")
-        _ic, _pf, _si = 1, 1, 0
+        _ic, _pf= 1, 1
         for i, real_img in enumerate(self.train_loader, 1):
             critic_loss, real_score = self._critic(real_img)
 
@@ -47,14 +47,13 @@ class GanTrain(Trainer):
                     _pf += 1
                 else:
                     _pf = 1
-                    _si += 1
                     print(f"[epoch: {self.epoch} - {i}/{len(self.train_loader)}]Loss_dnet: {critic_loss:.6f} - "
                           f"Loss_gnet: {generator_loss:.6f} | Score_real: {real_score:.4f} - Score_fake: {fake_score:.4f}")
 
                     fake_img = fake_img.cpu().data
-                    torchvision.utils.save_image(real_img, os.path.join(self.args.img_dir, f"real_{_si}.png"),
+                    torchvision.utils.save_image(real_img, os.path.join(self.args.img_dir, f"real_sample_{i}.png"),
                                                  nrow=round(pow(self.args.batch_size, 0.5)), normalize=True, scale_each=True)
-                    torchvision.utils.save_image(fake_img, os.path.join(self.args.img_dir, f"fake_{_si}.png"),
+                    torchvision.utils.save_image(fake_img, os.path.join(self.args.img_dir, f"fake_sample_{i}.png"),
                                                  nrow=round(pow(self.args.batch_size, 0.5)), normalize=True, scale_each=True)
 
     def validate(self):

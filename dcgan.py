@@ -15,8 +15,8 @@ class DcGanTrain(GanTrain):
         super(DcGanTrain, self).__init__(sample_num, train_dataset)
 
         self.net = {'gnet': gnet.to(self.device), 'dnet': dnet.to(self.device)}
-        self.optimizer = {'gnet': torch.optim.Adam(self.net['gnet'].parameters(), lr=2e-4, betas=(0.5, 0.99)),
-                          'dnet': torch.optim.Adam(self.net['dnet'].parameters(), lr=2e-4, betas=(0.5, 0.99), weight_decay=1e-3)}
+        self.optimizer = {'gnet': torch.optim.Adam(self.net['gnet'].parameters(), lr=self.args.lr, betas=(0.5, 0.99)),
+                          'dnet': torch.optim.Adam(self.net['dnet'].parameters(), lr=self.args.lr, betas=(0.5, 0.99), weight_decay=1e-3)}
         self.criterion = LogDloss()
 
     def _critic(self, real_img):
@@ -56,18 +56,20 @@ class DcGanTrain(GanTrain):
 if __name__ == "__main__":
     import torchvision
     from core.dataset import GanData
-    from local_lib.dcgan import Discriminator, Generator
+    from local_lib.dcgan import DCGAN_D, DCGAN_G
 
     img_dir = r"/home/data/Cartoon_faces/faces"
+    isize, nc, nz = 96, 3, 100
 
     transform = torchvision.transforms.Compose([
+        torchvision.transforms.Resize(isize),
+        torchvision.transforms.CenterCrop(isize),
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
     dataset = GanData(img_dir, transform=transform)
 
-    _n = 128
-    _gnet = Generator(_n)
-    _dnet = Discriminator()
-    trainer = DcGanTrain(_gnet, _dnet, _n, dataset)
+    _gnet = DCGAN_G(isize, nz, nc, ngf=64, extra_layers=0, activation='relu')
+    _dnet = DCGAN_D(isize, nc, ndf=64, extra_layers=0, activation='leakyrelu')
+    trainer = DcGanTrain(_gnet, _dnet, nz, dataset)
     trainer()
