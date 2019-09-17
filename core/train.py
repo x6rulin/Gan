@@ -16,10 +16,10 @@ class Args(ArgParse):
 
 class GanTrain(Trainer):
 
-    def __init__(self, sample_num, train_dataset):
+    def __init__(self, sample_num, train_dataset, args=Args()):
         self.sample_num = sample_num
 
-        super(GanTrain, self).__init__(train_dataset, args=Args())
+        super(GanTrain, self).__init__(train_dataset, args=args)
         self.net = {}
         self.optimizer = {}
         self.criterion = None
@@ -32,7 +32,7 @@ class GanTrain(Trainer):
 
     def train(self):
         print(f"epochs: {self.epoch}")
-        _ic, _pf= 1, 1
+        _ic, _pf = 1, 1
         for i, real_img in enumerate(self.train_loader, 1):
             critic_loss, real_score = self._critic(real_img)
 
@@ -67,16 +67,10 @@ class GanTrain(Trainer):
 
     @staticmethod
     def _no_grad(net):
-        for param in net.parameters():
-            if not param.requires_grad:
-                param.requires_grad = False
-            else:
-                break
+        for module in net.modules():
+            module.requires_grad_(requires_grad=False)
 
     @staticmethod
     def _grad_enable(net):
-        for param in net.parameters():
-            if param.requires_grad:
-                break
-            else:
-                param.requires_grad = True
+        for module in net.modules():
+            module.requires_grad_(requires_grad=True)

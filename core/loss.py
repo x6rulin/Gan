@@ -45,8 +45,8 @@ class EMLoss(torch.nn.Module):
 
     @staticmethod
     def critic_loss(real_scores, fake_scores):
-        return real_scores.mean() - fake_scores.mean()
+        return (fake_scores - real_scores).mean()
 
     @staticmethod
     def generator_loss(fake_scores):
-        return fake_scores.mean()
+        return -fake_scores.mean()

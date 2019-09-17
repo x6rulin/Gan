@@ -48,7 +48,7 @@ class _ConvLayer(torch.nn.Module):
 
 class DCGAN_D(torch.nn.Module):
 
-    def __init__(self, isize, nc, ndf=64, extra_layers=0, activation='leakyrelu', norm='BatchNorm2d', init_weights=True):
+    def __init__(self, isize, nc, ndf=64, extra_layers=0, activation='prelu', norm='BatchNorm2d', init_weights=True):
         super(DCGAN_D, self).__init__()
         assert isize % 16 == 0, "iszie has to be a multiple of 16"
 
@@ -103,7 +103,7 @@ class DCGAN_G(torch.nn.Module):
         return self.sub_module(x)
 
     @staticmethod
-    def _make_layers(isize, nz, nc, ngf, extra_layers=0, activation='relu', norm='BatchNorm2d'):
+    def _make_layers(isize, nz, nc, ngf, extra_layers=0, activation='prelu', norm='BatchNorm2d'):
         layers = []
 
         cngf, tisize = ngf, 4
@@ -131,8 +131,10 @@ class DCGAN_G(torch.nn.Module):
                                   activation=activation, **kwargs[norm == 'LayerNorm'])
                        for _ in range(extra_layers)])
 
-        kwargs = [dict(kernel_size=5, stride=3, padding=1, activation='tanh', norm='none'),
-                  dict(kernel_size=4, stride=2, padding=1, activation='tanh', norm='none')]
-        layers.append(_ConvLayer(cngf, nc, transposed=True, **kwargs[_m == 2]))
+        kwargs = [dict(kernel_size=5, stride=3, padding=1, activation=activation, norm='none'),
+                  dict(kernel_size=4, stride=2, padding=1, activation=activation, norm='none')]
+        layers.append(_ConvLayer(cngf, cngf, transposed=True, **kwargs[_m == 2]))
+
+        layers.append(_ConvLayer(cngf, nc, 3, 1, 1, activation='tanh', norm='none'))
 
         return torch.nn.Sequential(*layers)
