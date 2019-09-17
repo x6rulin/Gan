@@ -61,7 +61,7 @@ if __name__ == "__main__":
     from local_lib.dcgan import DCGAN_D, DCGAN_G
 
     img_dir = r"/home/data/Cartoon_faces/faces"
-    isize, nc, nz = 96, 3, 100
+    isize, nc, nz = 96, 3, 128
 
     transform = torchvision.transforms.Compose([
         torchvision.transforms.Resize(isize),

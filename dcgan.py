@@ -15,8 +15,8 @@ class DcGanTrain(GanTrain):
         super(DcGanTrain, self).__init__(sample_num, train_dataset)
 
         self.net = {'gnet': gnet.to(self.device), 'dnet': dnet.to(self.device)}
-        self.optimizer = {'gnet': torch.optim.Adam(self.net['gnet'].parameters(), lr=self.args.lr, betas=(0.5, 0.99)),
-                          'dnet': torch.optim.AdamW(self.net['dnet'].parameters(), lr=self.args.lr, betas=(0.5, 0.99), weight_decay=1e-3)}
+        self.optimizer = {'gnet': torch.optim.Adam(self.net['gnet'].parameters(), lr=self.args.lr, betas=self.args.betas),
+                          'dnet': torch.optim.AdamW(self.net['dnet'].parameters(), lr=self.args.lr, betas=self.args.betas, weight_decay=1e-3)}
         self.criterion = LogDloss()
 
     def _critic(self, real_img):
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     from local_lib.dcgan import DCGAN_D, DCGAN_G
 
     img_dir = r"/home/data/Cartoon_faces/faces"
-    isize, nc, nz = 96, 3, 100
+    isize, nc, nz = 96, 3, 128
 
     transform = torchvision.transforms.Compose([
         torchvision.transforms.Resize(isize),
