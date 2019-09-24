@@ -59,7 +59,7 @@ class WGan2Train(GanTrain):
         alpha = torch.rand(batch_size, 1, device=self.device)
         alpha = alpha.expand_as(real_data.reshape(batch_size, -1)).reshape(real_data.size())
 
-        interpolates = alpha * real_data + (1 - alpha) * fake_data
+        interpolates = fake_data + (real_data - fake_data) * alpha
         interpolates = torch.nn.Parameter(interpolates)
 
         disc_interpolates = self.net['dnet'](interpolates)
@@ -90,6 +90,6 @@ if __name__ == "__main__":
     dataset = GanData(img_dir, transform=transform)
 
     _gnet = DCGAN_G(isize, nz, nc, ngf=64, extra_layers=0, activation='prelu')
-    _dnet = DCGAN_D(isize, nc, ndf=64, extra_layers=0, activation='prelu', norm='LayerNorm')
+    _dnet = DCGAN_D(isize, nc, ndf=64, extra_layers=1, activation='prelu', norm='LayerNorm')
     trainer = WGan2Train(_gnet, _dnet, nz, dataset)
     trainer()
