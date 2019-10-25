@@ -10,7 +10,10 @@ from core.train import GanTrain
 
 
 class WGan2Train(GanTrain):
+    """GAN trainer using wgan_gp loss functions.
 
+       Suggested hyperparameters setting: [lr: 1e-4, betas: [0., 0.9], nc: 1, ng: 1]
+    """
     def __init__(self, gnet, dnet, sample_num, train_dataset):
         super(WGan2Train, self).__init__(sample_num, train_dataset)
 
